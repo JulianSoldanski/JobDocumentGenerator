@@ -66,6 +66,8 @@ export default defineConfig({
         ignorePatterns: [
             '.github/**',
             'composer.json',
+            // Die Projektbeschreibung ist ein gesetzter Text, kein Quellcode.
+            'product.md',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
         ],

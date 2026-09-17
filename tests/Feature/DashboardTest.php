@@ -10,18 +10,22 @@ class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guests_are_redirected_to_the_login_page()
+    public function test_guests_are_redirected_to_the_login_page(): void
     {
         $response = $this->get(route('dashboard'));
+
         $response->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_users_can_visit_the_dashboard()
+    /**
+     * Der Arbeitsplatz ist der Generator — ein eigenes Dashboard gibt es nicht.
+     */
+    public function test_authenticated_users_land_in_the_generator(): void
     {
-        $user = User::factory()->create();
-        $this->actingAs($user);
+        $this->actingAs(User::factory()->create());
 
         $response = $this->get(route('dashboard'));
-        $response->assertOk();
+
+        $response->assertRedirect('/generator');
     }
 }
