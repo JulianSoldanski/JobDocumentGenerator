@@ -1,0 +1,122 @@
+/*
+ * Sidebar: zweispaltig. Die farbige Spalte trägt Kontakt, Fähigkeiten und
+ * Ausbildung, die breite den Text.
+ */
+
+.sheet {
+    display: grid;
+    grid-template-columns: 58mm 1fr;
+    gap: 0;
+    padding: 0;
+}
+
+.aside {
+    background: var(--accent);
+    color: #fff;
+    padding: 14mm 7mm;
+}
+
+.main {
+    padding: 14mm 8mm;
+}
+
+.aside h1 {
+    font-size: 17pt;
+    line-height: 1.15;
+    margin: 0 0 4mm;
+}
+
+.aside h2 {
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 6mm 0 1.5mm;
+    padding-bottom: 1mm;
+    border-bottom: 1px solid rgb(255 255 255 / 35%);
+}
+
+.aside h2:first-of-type {
+    margin-top: 0;
+}
+
+.aside p,
+.aside li {
+    font-size: 9pt;
+    color: rgb(255 255 255 / 88%);
+}
+
+.aside ul {
+    list-style: none;
+    padding: 0;
+}
+
+.aside .entry {
+    margin-bottom: 3mm;
+}
+
+.aside .entry-title {
+    font-weight: 700;
+    font-size: 9.2pt;
+}
+
+.aside .entry-meta,
+.aside .entry-period {
+    color: rgb(255 255 255 / 70%);
+    font-size: 8.4pt;
+}
+
+.tag {
+    display: inline-block;
+    background: rgb(255 255 255 / 14%);
+    border-radius: 2mm;
+    padding: 0.4mm 2mm;
+    margin: 0 1mm 1mm 0;
+    font-size: 8.4pt;
+}
+
+.main h2 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin: 0 0 2.5mm;
+    padding-bottom: 1mm;
+    border-bottom: 1px solid var(--line);
+}
+
+.main section {
+    margin-bottom: 5.5mm;
+}
+
+.entry {
+    margin-bottom: 3.5mm;
+}
+
+.entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 3mm;
+}
+
+.entry-title {
+    font-weight: 700;
+}
+
+.entry-meta {
+    font-size: 9pt;
+    color: var(--muted);
+}
+
+.entry-period {
+    font-size: 9pt;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+@media screen {
+    .sheet {
+        padding: 0;
+    }
+}

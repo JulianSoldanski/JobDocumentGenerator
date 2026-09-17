@@ -1,0 +1,59 @@
+/* Anschreiben: DIN-nahe Anordnung, ein Blatt, viel Weißraum. */
+
+.addresses {
+    display: flex;
+    justify-content: space-between;
+    gap: 10mm;
+    margin-bottom: 14mm;
+}
+
+.recipient {
+    white-space: pre-line;
+    line-height: 1.5;
+}
+
+.recipient .company {
+    font-weight: 700;
+}
+
+.sender {
+    text-align: right;
+    color: var(--muted);
+    font-size: 9.2pt;
+    line-height: 1.5;
+}
+
+.sender .name {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.date-line {
+    text-align: right;
+    color: var(--muted);
+    margin-bottom: 10mm;
+}
+
+.subject {
+    font-weight: 700;
+    font-size: 11pt;
+    margin-bottom: 6mm;
+}
+
+.salutation {
+    margin-bottom: 4mm;
+}
+
+.body p {
+    margin: 0 0 3.5mm;
+    text-align: left;
+}
+
+.closing {
+    margin-top: 8mm;
+}
+
+.closing .signature {
+    margin-top: 6mm;
+    font-weight: 700;
+}

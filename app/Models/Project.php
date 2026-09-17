@@ -48,6 +48,18 @@ class Project extends Model
     /** Sprachabhängige Listenfelder eines Projekts. */
     public const LIST_FIELDS = ['contributions'];
 
+    /**
+     * Listenspalten sind leere Listen, keine NULLs — der Editor und die
+     * Renderer sollen sich nie mit "nicht gesetzt" befassen müssen.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'tags' => '[]',
+        'technologies' => '[]',
+        'translations' => '{}',
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {

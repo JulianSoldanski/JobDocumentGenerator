@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { LanguageTabs } from '@/components/profile/language-tabs';
@@ -16,7 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { useAiTask } from '@/hooks/use-ai-task';
+import { store as draftProject } from '@/actions/App/Http/Controllers/Profile/ProjectDraftController';
 import { cn } from '@/lib/utils';
 import {
     destroy,
@@ -77,6 +80,58 @@ export default function Projects({ projects }: { projects: Project[] }) {
     const [showLongForm, setShowLongForm] = useState(false);
 
     const form = useForm<FormData>(emptyForm());
+
+    type Draft = {
+        client: string;
+        period: string;
+        team_size: string;
+        technologies: string[];
+        translations: Translations;
+    };
+
+    const draft = useAiTask<Draft>();
+
+    /**
+     * Der Entwurf füllt die ausführlichen Felder beider Sprachen. Gespeichert
+     * wird nichts, bevor der Nutzer ihn gelesen hat.
+     */
+    const requestDraft = () =>
+        void draft.start(draftProject.url(), {
+            project_id: editing?.id ?? null,
+            title:
+                text(form.data.translations.de.title) ||
+                text(form.data.translations.en.title),
+            summary:
+                text(form.data.translations.de.summary) ||
+                text(form.data.translations.en.summary),
+            tags: form.data.tags,
+            grade: form.data.grade,
+        });
+
+    const adoptDraft = () => {
+        if (!draft.result) {
+            return;
+        }
+
+        const result = draft.result;
+
+        setShowLongForm(true);
+        form.setData((current) => ({
+            ...current,
+            client: result.client || current.client,
+            period: result.period || current.period,
+            team_size: result.team_size || current.team_size,
+            technologies:
+                result.technologies.length > 0
+                    ? result.technologies
+                    : current.technologies,
+            translations: {
+                de: { ...current.translations.de, ...result.translations.de },
+                en: { ...current.translations.en, ...result.translations.en },
+            },
+        }));
+        draft.reset();
+    };
 
     const openNew = () => {
         setEditing(null);
@@ -551,6 +606,64 @@ export default function Projects({ projects }: { projects: Project[] }) {
                                 Ausführliche Felder für die Projektliste
                             </Button>
                         )}
+
+                        <div className="space-y-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={requestDraft}
+                                disabled={draft.running}
+                            >
+                                {draft.running ? (
+                                    <Spinner className="h-4 w-4" />
+                                ) : (
+                                    <Sparkles className="h-4 w-4" />
+                                )}
+                                Entwurf aus der Kurzfassung
+                            </Button>
+
+                            {draft.error && (
+                                <p className="text-destructive text-sm">
+                                    {draft.error}
+                                </p>
+                            )}
+
+                            {draft.result && (
+                                <div className="bg-muted/40 space-y-2 rounded-lg border p-3 text-sm">
+                                    <p className="font-medium">
+                                        Vorschlag der KI
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                        {text(
+                                            draft.result.translations.de.role,
+                                        )}
+                                        {' · '}
+                                        {text(
+                                            draft.result.translations.de
+                                                .situation,
+                                        )}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={adoptDraft}
+                                        >
+                                            Übernehmen
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={draft.reset}
+                                        >
+                                            Verwerfen
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <DialogFooter>
                             <Button

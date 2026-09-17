@@ -6,9 +6,11 @@ import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
 import {
+    ai,
     contact,
     education,
     experience,
+    importMethod,
     projects,
     skills,
     style,
@@ -22,6 +24,8 @@ const sectionNavItems: NavItem[] = [
     { title: 'Projekte', href: projects(), icon: null },
     { title: 'Schreibstil', href: style(), icon: null },
     { title: 'Kontaktdaten', href: contact(), icon: null },
+    { title: 'Import aus PDF', href: importMethod(), icon: null },
+    { title: 'KI-Zugang', href: ai(), icon: null },
 ];
 
 export default function ProfileLayout({ children }: PropsWithChildren) {

@@ -21,6 +21,11 @@ use Illuminate\Support\Carbon;
 #[Fillable(['example', 'rules'])]
 class WritingStyle extends Model
 {
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'rules' => '[]',
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {

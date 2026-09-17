@@ -34,6 +34,11 @@ class AiTask extends Model
 {
     use HasUuids;
 
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'input' => '{}',
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {

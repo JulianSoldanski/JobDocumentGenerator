@@ -36,6 +36,11 @@ use Illuminate\Support\Carbon;
 #[Fillable(['type', 'language', 'layout', 'content', 'version'])]
 class Document extends Model
 {
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'content' => '{}',
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {

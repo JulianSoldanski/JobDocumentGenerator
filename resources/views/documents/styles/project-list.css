@@ -1,0 +1,109 @@
+/* Projektliste: ein Block je Projekt, Beschriftung links, Inhalt rechts. */
+
+.header {
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 3mm;
+    margin-bottom: 4mm;
+}
+
+.header h1 {
+    font-size: 19pt;
+    margin: 0 0 1mm;
+}
+
+.header .doc-title {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 11pt;
+    margin-bottom: 1.5mm;
+}
+
+.header .contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 5mm;
+    font-size: 9pt;
+    color: var(--muted);
+}
+
+.intro {
+    color: var(--muted);
+    margin-bottom: 6mm;
+}
+
+.project {
+    border-top: 1px solid var(--line);
+    padding-top: 3mm;
+    margin-bottom: 5mm;
+}
+
+.project-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4mm;
+    margin-bottom: 1.5mm;
+}
+
+.project-head h2 {
+    font-size: 12pt;
+    margin: 0;
+}
+
+.project-head .number {
+    color: var(--muted);
+    margin-right: 2mm;
+}
+
+.badge {
+    font-size: 8.6pt;
+    color: var(--accent);
+    border: 1px solid var(--line);
+    border-radius: 3mm;
+    padding: 0.5mm 2.5mm;
+    white-space: nowrap;
+}
+
+.project-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 5mm;
+    color: var(--muted);
+    font-size: 9pt;
+    margin-bottom: 2mm;
+}
+
+.fields {
+    display: grid;
+    grid-template-columns: 30mm 1fr;
+    gap: 1.5mm 5mm;
+    margin: 0;
+}
+
+.fields dt {
+    font-weight: 700;
+    font-size: 9.2pt;
+    color: var(--accent);
+}
+
+.fields dd {
+    margin: 0;
+}
+
+.fields ul {
+    margin: 0;
+    padding-left: 1.1em;
+}
+
+.tech span {
+    display: inline-block;
+    border: 1px solid var(--line);
+    border-radius: 2mm;
+    padding: 0.3mm 2mm;
+    margin: 0 1.5mm 1.5mm 0;
+    font-size: 8.8pt;
+}
+
+.result {
+    font-weight: 700;
+}

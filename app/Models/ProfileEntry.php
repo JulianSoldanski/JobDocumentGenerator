@@ -40,6 +40,11 @@ class ProfileEntry extends Model
     /** @use HasFactory<ProfileEntryFactory> */
     use HasFactory, HasTranslations;
 
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'translations' => '{}',
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {

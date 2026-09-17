@@ -1,0 +1,96 @@
+/*
+ * Gemeinsame Grundlage aller Dokumente.
+ *
+ * Die Seite ist ein echtes A4-Blatt: @page setzt Format und Rand, der Rest
+ * rechnet in Millimetern. Gerendert wird mit einer Browser-Engine, deshalb
+ * sind Grid und moderne Selektoren erlaubt.
+ */
+
+@page {
+    size: A4;
+    margin: 18mm 16mm;
+}
+
+:root {
+    --ink: #1a1d21;
+    --muted: #5b6672;
+    --line: #dfe3e8;
+    --accent: #2f4858;
+    --page-width: 178mm;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    color: var(--ink);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10.2pt;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+ul {
+    margin: 0.25em 0 0;
+    padding-left: 1.1em;
+}
+
+li {
+    margin: 0.15em 0;
+}
+
+li::marker {
+    color: var(--muted);
+}
+
+p {
+    margin: 0 0 0.6em;
+}
+
+/* Ein Eintrag soll nicht mitten im Seitenumbruch zerrissen werden. */
+.entry,
+.project {
+    break-inside: avoid;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+/*
+ * Am Bildschirm sieht man das Blatt; beim Drucken ist das Blatt die Seite,
+ * dann fallen Rahmen und Schatten weg.
+ */
+.sheet {
+    width: var(--page-width);
+    margin: 0 auto;
+    padding: 0;
+}
+
+@media screen {
+    body {
+        background: #f3f4f6;
+        padding: 10mm 0;
+    }
+
+    .sheet {
+        background: #fff;
+        padding: 16mm;
+        width: 210mm;
+        min-height: 297mm;
+        box-shadow: 0 1px 4px rgb(0 0 0 / 12%);
+    }
+}

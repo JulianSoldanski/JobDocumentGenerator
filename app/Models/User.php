@@ -58,6 +58,12 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasOne(ContactDetail::class);
     }
 
+    /** @return HasOne<AiSetting, $this> */
+    public function aiSetting(): HasOne
+    {
+        return $this->hasOne(AiSetting::class);
+    }
+
     /** @return HasOne<WritingStyle, $this> */
     public function writingStyle(): HasOne
     {
@@ -112,6 +118,14 @@ class User extends Authenticatable implements PasskeyUser
     public function contact(): ContactDetail
     {
         return $this->contactDetail()->firstOrCreate([]);
+    }
+
+    /**
+     * Der KI-Zugang, notfalls frisch angelegt.
+     */
+    public function aiAccess(): AiSetting
+    {
+        return $this->aiSetting()->firstOrCreate([]);
     }
 
     /**
