@@ -73,6 +73,35 @@ const asList = (value: string): string[] =>
         .map((item) => item.trim())
         .filter(Boolean);
 
+/**
+ * Behält den getippten Text, damit ein gerade eingegebenes Komma nicht beim
+ * Zurückschreiben der Liste verschwindet. Ändert sich die Liste von außen,
+ * wird sie neu angezeigt.
+ */
+function ListInput({
+    value,
+    onChange,
+    ...props
+}: Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange'> & {
+    value: string[];
+    onChange: (value: string[]) => void;
+}) {
+    const [raw, setRaw] = useState(value.join(', '));
+    const shown =
+        asList(raw).join(', ') === value.join(', ') ? raw : value.join(', ');
+
+    return (
+        <Input
+            {...props}
+            value={shown}
+            onChange={(event) => {
+                setRaw(event.target.value);
+                onChange(asList(event.target.value));
+            }}
+        />
+    );
+}
+
 export default function Projects({ projects }: { projects: Project[] }) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Project | null>(null);
@@ -332,14 +361,11 @@ export default function Projects({ projects }: { projects: Project[] }) {
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="tags">Tags</Label>
-                                <Input
+                                <ListInput
                                     id="tags"
-                                    value={form.data.tags.join(', ')}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'tags',
-                                            asList(event.target.value),
-                                        )
+                                    value={form.data.tags}
+                                    onChange={(tags) =>
+                                        form.setData('tags', tags)
                                     }
                                     placeholder="react, typescript"
                                 />
@@ -582,15 +608,13 @@ export default function Projects({ projects }: { projects: Project[] }) {
                                     <Label htmlFor="technologies">
                                         Technologien
                                     </Label>
-                                    <Input
+                                    <ListInput
                                         id="technologies"
-                                        value={form.data.technologies.join(
-                                            ', ',
-                                        )}
-                                        onChange={(event) =>
+                                        value={form.data.technologies}
+                                        onChange={(technologies) =>
                                             form.setData(
                                                 'technologies',
-                                                asList(event.target.value),
+                                                technologies,
                                             )
                                         }
                                     />
