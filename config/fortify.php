@@ -161,7 +161,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Keine Registrierung: Die App hat genau einen Nutzer.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
