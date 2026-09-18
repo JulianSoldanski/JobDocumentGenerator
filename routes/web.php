@@ -5,7 +5,9 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\StatisticsController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+// Keine Startseite: Wer angemeldet ist, landet im Generator, alle anderen
+// leitet die Anmeldung dorthin weiter.
+Route::redirect('/', '/generator')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Der Generator ist der Arbeitsplatz — dort startet man, nicht auf einem

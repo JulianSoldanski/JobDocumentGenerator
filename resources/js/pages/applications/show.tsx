@@ -1,5 +1,11 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, ExternalLink, FileText, RotateCcw } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    ExternalLink,
+    FileText,
+    RotateCcw,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Field } from '@/components/applications/field';
 import { StageBadge } from '@/components/applications/stage-badge';
@@ -15,7 +21,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { date, duration, since, stageLabel, today } from '@/lib/applications';
+import {
+    date,
+    duration,
+    nextStage,
+    since,
+    stageLabel,
+    today,
+} from '@/lib/applications';
 import { cn } from '@/lib/utils';
 import {
     destroy,
@@ -56,7 +69,7 @@ export default function Show({
         <>
             <Head title={`${application.company} · Bewerbung`} />
 
-            <div className="space-y-6 px-4 py-6">
+            <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6">
                 <Link
                     href={index.url()}
                     className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
@@ -136,9 +149,12 @@ function StageSection({
             (rejected ? application.highest_stage : application.stage),
     );
 
+    const next = nextStage(stages, application);
+
+    // Die Stufe kommt beim Absenden dazu; im Formular steht nur die für eine
+    // Korrektur gewählte.
     const form = useForm({
-        stage: (linear.find((_, position) => position === reached + 1)?.value ??
-            'rejected') as ApplicationStage,
+        stage: '' as ApplicationStage | '',
         date: today(),
     });
 
@@ -146,6 +162,7 @@ function StageSection({
         form.transform((data) => ({ ...data, stage }));
         form.post(changeStage.url({ application: application.id }), {
             preserveScroll: true,
+            onSuccess: () => form.reset('stage'),
         });
     };
 
@@ -205,10 +222,48 @@ function StageSection({
                     Reaktivieren
                 </Button>
             ) : (
-                <div className="space-y-2">
-                    <div className="flex flex-wrap items-end gap-2">
-                        <div className="grid gap-2">
-                            <span className="text-sm">Neue Stufe</span>
+                <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm">am</span>
+                        <Input
+                            type="date"
+                            max={today()}
+                            aria-label="Datum des Wechsels"
+                            className="w-36"
+                            value={form.data.date}
+                            onChange={(event) =>
+                                form.setData('date', event.target.value)
+                            }
+                        />
+                        {next && (
+                            <Button
+                                size="sm"
+                                className="h-9"
+                                disabled={form.processing}
+                                onClick={() => submit(next.value)}
+                            >
+                                <ArrowRight className="h-4 w-4" />
+                                {next.label}
+                            </Button>
+                        )}
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:text-destructive h-9"
+                            disabled={form.processing}
+                            title="Absage erhalten"
+                            onClick={() => submit('rejected')}
+                        >
+                            Absage
+                        </Button>
+                    </div>
+
+                    {/* Für Fehlklicks und übersprungene Stufen. */}
+                    <details className="text-sm">
+                        <summary className="text-muted-foreground hover:text-foreground w-fit cursor-pointer">
+                            Andere Stufe eintragen
+                        </summary>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
                             <Select
                                 value={form.data.stage}
                                 onValueChange={(value) =>
@@ -219,7 +274,7 @@ function StageSection({
                                 }
                             >
                                 <SelectTrigger className="w-40">
-                                    <SelectValue />
+                                    <SelectValue placeholder="Stufe wählen" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {linear
@@ -238,37 +293,23 @@ function StageSection({
                                         ))}
                                 </SelectContent>
                             </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <span className="text-sm">am</span>
-                            <Input
-                                type="date"
-                                max={today()}
-                                className="w-40"
-                                value={form.data.date}
-                                onChange={(event) =>
-                                    form.setData('date', event.target.value)
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-9"
+                                disabled={
+                                    form.processing || form.data.stage === ''
                                 }
-                            />
+                                onClick={() =>
+                                    form.data.stage !== '' &&
+                                    submit(form.data.stage)
+                                }
+                            >
+                                Übernehmen
+                            </Button>
                         </div>
-                        <Button
-                            size="sm"
-                            className="h-9"
-                            disabled={form.processing}
-                            onClick={() => submit(form.data.stage)}
-                        >
-                            Übernehmen
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-9"
-                            disabled={form.processing}
-                            onClick={() => submit('rejected')}
-                        >
-                            Absage erhalten
-                        </Button>
-                    </div>
+                    </details>
+
                     <InputError
                         message={form.errors.stage ?? form.errors.date}
                     />

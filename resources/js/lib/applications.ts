@@ -1,4 +1,4 @@
-import type { ApplicationStage, StageOption } from '@/types';
+import type { Application, ApplicationStage, StageOption } from '@/types';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -7,6 +7,22 @@ export function stageLabel(
     value: ApplicationStage | null,
 ): string {
     return stages.find((stage) => stage.value === value)?.label ?? '';
+}
+
+/** Die Stufe nach der aktuellen — keine nach dem 3. Gespräch oder einer Absage. */
+export function nextStage(
+    stages: StageOption[],
+    application: Application,
+): StageOption | undefined {
+    if (application.stage === 'rejected') {
+        return undefined;
+    }
+
+    const linear = stages.filter((stage) => stage.value !== 'rejected');
+
+    return linear[
+        linear.findIndex((stage) => stage.value === application.stage) + 1
+    ];
 }
 
 /** „heute", „seit 1 Tag", „seit 12 Tagen" — wie lange etwas schon liegt. */

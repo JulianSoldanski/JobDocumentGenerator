@@ -95,7 +95,7 @@ export default function Index({
         return (
             <>
                 <Head title="Statistik" />
-                <div className="space-y-6 px-4 py-6">
+                <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6">
                     <Heading title="Statistik" />
                     <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
                         Noch keine Bewerbungen — die Statistik füllt sich,
@@ -110,7 +110,7 @@ export default function Index({
         <>
             <Head title="Statistik" />
 
-            <div className="max-w-6xl space-y-8 px-4 py-6">
+            <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6">
                 <Heading
                     title="Statistik"
                     description="Ausgewertet aus dem Verlauf jeder Bewerbung."

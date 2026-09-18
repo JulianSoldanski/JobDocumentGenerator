@@ -32,7 +32,7 @@ export default function ProfileLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
 
     return (
-        <div className="px-4 py-6">
+        <div className="mx-auto w-full max-w-6xl px-4 py-6">
             <Heading
                 title="Profil"
                 description="Die Datenbasis: einmal gepflegt, immer wieder verwendet."

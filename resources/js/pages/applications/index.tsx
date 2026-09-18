@@ -1,8 +1,9 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ExternalLink, Plus } from 'lucide-react';
+import { Head, Link, router, useForm, useRemember } from '@inertiajs/react';
+import { ExternalLink, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Field } from '@/components/applications/field';
-import { StageMenu } from '@/components/applications/stage-menu';
+import { StageActions } from '@/components/applications/stage-actions';
+import { StageBadge } from '@/components/applications/stage-badge';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,15 +32,31 @@ type Props = {
  */
 export default function Index({ applications, stages }: Props) {
     const [creating, setCreating] = useState(false);
+    // Suche und Filter überstehen den Abstecher auf eine Detailseite.
+    const [search, setSearch] = useRemember('', 'applications.search');
+    const [status, setStatus] = useRemember('all', 'applications.status');
+
     const running = applications.filter(
         (application) => application.stage !== 'rejected',
     ).length;
+
+    const needle = search.trim().toLocaleLowerCase('de');
+    const visible = applications.filter(
+        (application) =>
+            (status === 'all' ||
+                (status === 'running'
+                    ? application.stage !== 'rejected'
+                    : application.stage === status)) &&
+            `${application.company} ${application.position}`
+                .toLocaleLowerCase('de')
+                .includes(needle),
+    );
 
     return (
         <>
             <Head title="Bewerbungen" />
 
-            <div className="max-w-6xl space-y-6 px-4 py-6">
+            <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                     <Heading
                         title="Bewerbungen"
@@ -60,11 +77,68 @@ export default function Index({ applications, stages }: Props) {
                     />
                 )}
 
+                {applications.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative w-full sm:w-80">
+                            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
+                            <Input
+                                type="search"
+                                placeholder="Unternehmen oder Position suchen"
+                                aria-label="Suchen"
+                                className="pl-8"
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                            />
+                        </div>
+                        <Select value={status} onValueChange={setStatus}>
+                            <SelectTrigger
+                                className="w-44"
+                                aria-label="Nach Stufe filtern"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Alle Stufen</SelectItem>
+                                <SelectItem value="running">Laufend</SelectItem>
+                                {stages.map((stage) => (
+                                    <SelectItem
+                                        key={stage.value}
+                                        value={stage.value}
+                                    >
+                                        {stage.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {visible.length !== applications.length && (
+                            <span className="text-muted-foreground text-sm">
+                                {visible.length} von {applications.length}
+                            </span>
+                        )}
+                    </div>
+                )}
+
                 {applications.length === 0 ? (
                     <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
                         Noch keine Bewerbungen. Sie entstehen, sobald du im
                         Generator ein Dokument erzeugst — oder hier von Hand.
                     </p>
+                ) : visible.length === 0 ? (
+                    <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed p-6 text-sm">
+                        Keine Bewerbung passt zu Suche und Filter.
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setSearch('');
+                                setStatus('all');
+                            }}
+                        >
+                            Zurücksetzen
+                        </Button>
+                    </div>
                 ) : (
                     <div className="overflow-x-auto rounded-lg border">
                         <table className="w-full text-sm">
@@ -82,10 +156,15 @@ export default function Index({ applications, stages }: Props) {
                                     <th className="px-4 py-2 text-right font-medium">
                                         Recherche
                                     </th>
+                                    <th className="px-4 py-2">
+                                        <span className="sr-only">
+                                            Stufe ändern
+                                        </span>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
-                                {applications.map((application) => (
+                                {visible.map((application) => (
                                     <tr
                                         key={application.id}
                                         onClick={() =>
@@ -130,7 +209,7 @@ export default function Index({ applications, stages }: Props) {
                                             </p>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <StageMenu
+                                            <StageBadge
                                                 application={application}
                                                 stages={stages}
                                             />
@@ -148,6 +227,12 @@ export default function Index({ applications, stages }: Props) {
                                                       application.research_seconds,
                                                   )
                                                 : '–'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <StageActions
+                                                application={application}
+                                                stages={stages}
+                                            />
                                         </td>
                                     </tr>
                                 ))}

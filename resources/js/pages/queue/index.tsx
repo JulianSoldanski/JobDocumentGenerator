@@ -74,7 +74,7 @@ export default function Index({
         <>
             <Head title="Queue" />
 
-            <div className="max-w-4xl space-y-8 px-4 py-6">
+            <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
                 <Heading
                     title="Queue"
                     description={
