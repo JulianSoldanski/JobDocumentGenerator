@@ -103,6 +103,7 @@ class CvAssembler
                 'start_month' => $entry->start_month,
                 'end_month' => $entry->end_month,
                 'is_current' => $entry->is_current,
+                'subtle' => $entry->is_subtle,
                 'bullets' => $entry->localizedList($this->language, 'bullets'),
             ])->all(),
             'education' => $this->dated(ProfileSection::Education)->map(fn (ProfileEntry $entry): array => [

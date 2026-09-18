@@ -22,7 +22,7 @@
             <section class="card">
                 <h2>{{ $fmt->label('cv.experience') }}</h2>
                 @foreach ($experience as $entry)
-                    <div class="entry">
+                    <div @class(['entry', 'subtle' => $entry['subtle'] ?? false])>
                         <div class="entry-title">{{ $entry['title'] }}</div>
                         <div class="entry-meta">{{ collect([
                             collect([$entry['organization'] ?? '', $entry['location'] ?? ''])->filter()->implode(', '),

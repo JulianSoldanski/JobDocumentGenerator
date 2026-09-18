@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $end_month
  * @property bool $is_current
  * @property bool $is_visible
+ * @property bool $is_subtle
  * @property int $position
  * @property array<string, array<string, string|array<int, string>>> $translations
  * @property string|null $legacy_id
@@ -33,7 +34,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'section', 'organization', 'start_month', 'end_month',
-    'is_current', 'is_visible', 'position', 'translations', 'legacy_id',
+    'is_current', 'is_visible', 'is_subtle', 'position', 'translations', 'legacy_id',
 ])]
 class ProfileEntry extends Model
 {
@@ -52,6 +53,7 @@ class ProfileEntry extends Model
             'section' => ProfileSection::class,
             'is_current' => 'boolean',
             'is_visible' => 'boolean',
+            'is_subtle' => 'boolean',
             'translations' => 'array',
         ];
     }

@@ -46,6 +46,7 @@ type FormData = {
     end_month: string;
     is_current: boolean;
     is_visible: boolean;
+    is_subtle: boolean;
     translations: Translations;
 };
 
@@ -110,6 +111,7 @@ export function DatedSection({
         end_month: '',
         is_current: false,
         is_visible: true,
+        is_subtle: false,
         translations: emptyTranslations(config),
     });
 
@@ -123,6 +125,7 @@ export function DatedSection({
             end_month: '',
             is_current: false,
             is_visible: true,
+            is_subtle: false,
             translations: emptyTranslations(config),
         });
         form.reset();
@@ -141,6 +144,7 @@ export function DatedSection({
             end_month: entry.end_month ?? '',
             is_current: entry.is_current,
             is_visible: entry.is_visible,
+            is_subtle: entry.is_subtle,
             translations: {
                 de: {
                     [config.headlineField]: toText(
@@ -370,6 +374,20 @@ export function DatedSection({
                                 />
                                 Im Lebenslauf sichtbar
                             </label>
+                            {config.section === 'experience' && (
+                                <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={form.data.is_subtle}
+                                        onCheckedChange={(checked) =>
+                                            form.setData(
+                                                'is_subtle',
+                                                checked === true,
+                                            )
+                                        }
+                                    />
+                                    Weniger hervorheben
+                                </label>
+                            )}
                         </div>
 
                         <div className="space-y-4 rounded-lg border p-4">

@@ -15,7 +15,13 @@ import type { CvContent, DocumentVersion } from '@/types';
 
 type Form = {
     statement: string;
-    experience: { id: string; label: string; bullets: string }[];
+    statementIncluded: boolean;
+    experience: {
+        id: string;
+        label: string;
+        bullets: string;
+        subtle: boolean;
+    }[];
     education: { id: string; label: string; details: string }[];
     projects: { id: string; title: string; included: boolean }[];
     hard: string;
@@ -54,10 +60,12 @@ const period = (start: string | null, end: string | null, current: boolean) =>
 
 const toForm = (content: CvContent): Form => ({
     statement: content.statement,
+    statementIncluded: content.statement_included ?? true,
     experience: content.experience.map((entry) => ({
         id: entry.id,
         label: `${entry.title} — ${entry.organization} (${period(entry.start_month, entry.end_month, entry.is_current)})`,
         bullets: entry.bullets.join('\n'),
+        subtle: entry.subtle ?? false,
     })),
     education: content.education.map((entry) => ({
         id: entry.id,
@@ -147,9 +155,11 @@ export function CvEditor({ documentId, onSaved, onCancel }: Props) {
                     update.url({ document: documentId }),
                     {
                         statement: form.statement,
+                        statement_included: form.statementIncluded,
                         experience: form.experience.map((entry) => ({
                             id: entry.id,
                             bullets: lines(entry.bullets),
+                            subtle: entry.subtle,
                         })),
                         education: form.education.map((entry) => ({
                             id: entry.id,
@@ -186,10 +196,28 @@ export function CvEditor({ documentId, onSaved, onCancel }: Props) {
             </p>
 
             <div className="grid gap-2">
-                <Label htmlFor="cv-statement">Profil-Statement</Label>
+                <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="cv-statement">Profil-Statement</Label>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="cv-statement-included"
+                            checked={form.statementIncluded}
+                            onCheckedChange={(checked) =>
+                                change({ statementIncluded: checked === true })
+                            }
+                        />
+                        <label
+                            htmlFor="cv-statement-included"
+                            className="text-sm"
+                        >
+                            Im Lebenslauf zeigen
+                        </label>
+                    </div>
+                </div>
                 <Textarea
                     id="cv-statement"
                     rows={3}
+                    className={form.statementIncluded ? '' : 'opacity-50'}
                     value={form.statement}
                     onChange={(event) =>
                         change({ statement: event.target.value })
@@ -204,7 +232,39 @@ export function CvEditor({ documentId, onSaved, onCancel }: Props) {
                 >
                     {form.experience.map((entry, index) => (
                         <div key={entry.id} className="grid gap-1.5">
-                            <p className="text-sm font-medium">{entry.label}</p>
+                            <div className="flex items-start justify-between gap-3">
+                                <p
+                                    className={
+                                        entry.subtle
+                                            ? 'text-muted-foreground text-sm'
+                                            : 'text-sm font-medium'
+                                    }
+                                >
+                                    {entry.label}
+                                </p>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <Checkbox
+                                        id={`subtle-${entry.id}`}
+                                        checked={entry.subtle}
+                                        onCheckedChange={(checked) => {
+                                            const experience = [
+                                                ...form.experience,
+                                            ];
+                                            experience[index] = {
+                                                ...entry,
+                                                subtle: checked === true,
+                                            };
+                                            change({ experience });
+                                        }}
+                                    />
+                                    <label
+                                        htmlFor={`subtle-${entry.id}`}
+                                        className="text-muted-foreground text-xs"
+                                    >
+                                        Weniger hervorheben
+                                    </label>
+                                </div>
+                            </div>
                             <Textarea
                                 rows={Math.max(
                                     2,

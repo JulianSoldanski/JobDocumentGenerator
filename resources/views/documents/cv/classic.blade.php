@@ -18,7 +18,7 @@
             <section>
                 <h2>{{ $fmt->label('cv.experience') }}</h2>
                 @foreach ($experience as $entry)
-                    <div class="entry">
+                    <div @class(['entry', 'subtle' => $entry['subtle'] ?? false])>
                         <div class="entry-period">{{ $fmt->period($entry['start_month'] ?? null, $entry['end_month'] ?? null, $entry['is_current'] ?? false) }}</div>
                         <div>
                             <div class="entry-title">{{ $entry['title'] }}</div>

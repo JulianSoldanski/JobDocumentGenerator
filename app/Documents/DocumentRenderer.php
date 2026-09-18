@@ -109,10 +109,12 @@ class DocumentRenderer
         return match ($type) {
             DocumentType::Cv => [
                 'contact' => $this->contact($content),
-                'statement' => trim((string) data_get($content, 'statement', '')),
+                // Die Schalter im Editor entscheiden, was gedruckt wird.
+                'statement' => data_get($content, 'statement_included', true)
+                    ? trim((string) data_get($content, 'statement', ''))
+                    : '',
                 'experience' => $this->list($content, 'experience'),
                 'education' => $this->list($content, 'education'),
-                // Der Schalter im Editor entscheidet, was gedruckt wird.
                 'projects' => array_values(array_filter(
                     $this->list($content, 'projects'),
                     fn (array $project): bool => (bool) ($project['included'] ?? true),

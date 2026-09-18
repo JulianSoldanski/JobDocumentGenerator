@@ -41,10 +41,12 @@ class DocumentController extends Controller
         $edits = $request->validate(match ($document->type) {
             DocumentType::Cv => [
                 'statement' => ['sometimes', 'nullable', 'string', 'max:2000'],
+                'statement_included' => ['sometimes', 'boolean'],
                 'experience' => ['sometimes', 'array'],
                 'experience.*.id' => ['required', 'string'],
                 'experience.*.bullets' => ['array'],
                 'experience.*.bullets.*' => ['nullable', 'string', 'max:1000'],
+                'experience.*.subtle' => ['sometimes', 'boolean'],
                 'education' => ['sometimes', 'array'],
                 'education.*.id' => ['required', 'string'],
                 'education.*.details' => ['array'],

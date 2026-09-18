@@ -11,8 +11,9 @@ use App\Support\Translations;
  * Bearbeitet wird das Dokument, nicht das Profil: Eine Änderung für diese
  * Stelle soll nicht in jedem künftigen Lebenslauf auftauchen.
  *
- * Editierbar ist, was die Produktbeschreibung nennt — Statement, Bullet
- * Points, Ausbildungsdetails, Projektauswahl, Skill-Zeilen, Brieftext.
+ * Editierbar ist, was die Produktbeschreibung nennt — Statement (und ob es
+ * erscheint), Bullet Points, Ausbildungsdetails, Projektauswahl, Skill-Zeilen,
+ * Brieftext.
  * Titel, Firmen und Daten bleiben, wie das Profil sie liefert; Einträge werden
  * über ihre ID zugeordnet, nie über die Position im Formular.
  */
@@ -49,7 +50,13 @@ class DocumentEditor
             $content['statement'] = Translations::text($edits['statement']);
         }
 
+        // Ausgeblendet, nicht gelöscht: Der Text bleibt für später.
+        if (array_key_exists('statement_included', $edits)) {
+            $content['statement_included'] = (bool) $edits['statement_included'];
+        }
+
         $content['experience'] = self::replaceLists($content['experience'] ?? [], $edits['experience'] ?? null, 'bullets');
+        $content['experience'] = self::markSubtle($content['experience'], $edits['experience'] ?? null);
         $content['education'] = self::replaceLists($content['education'] ?? [], $edits['education'] ?? null, 'details');
 
         if (is_array($edits['projects'] ?? null)) {
@@ -96,6 +103,38 @@ class DocumentEditor
         }
 
         return $content;
+    }
+
+    /**
+     * Ob eine Station leiser erscheint, entscheidet jeder Lebenslauf selbst —
+     * das Profil gibt nur den Anfang vor.
+     *
+     * @param  array<int, mixed>  $entries
+     * @return array<int, mixed>
+     */
+    private static function markSubtle(array $entries, mixed $edits): array
+    {
+        if (! is_array($edits)) {
+            return $entries;
+        }
+
+        $subtle = [];
+
+        foreach ($edits as $edit) {
+            if (is_array($edit) && isset($edit['id']) && array_key_exists('subtle', $edit)) {
+                $subtle[(string) $edit['id']] = (bool) $edit['subtle'];
+            }
+        }
+
+        return array_map(function ($entry) use ($subtle) {
+            $id = is_array($entry) ? (string) ($entry['id'] ?? '') : '';
+
+            if ($id !== '' && array_key_exists($id, $subtle)) {
+                $entry['subtle'] = $subtle[$id];
+            }
+
+            return $entry;
+        }, $entries);
     }
 
     /**

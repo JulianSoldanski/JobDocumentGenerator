@@ -191,6 +191,58 @@ class DocumentEditingTest extends TestCase
     }
 
     /**
+     * Das Profil gibt vor, ob eine Station leiser erscheint; jeder Lebenslauf
+     * kann das für sich ändern.
+     */
+    public function test_a_position_can_appear_less_prominent(): void
+    {
+        $this->job->update(['is_subtle' => true]);
+        $cv = $this->cv();
+
+        $this->assertTrue($cv->content['experience'][0]['subtle']);
+        $this->actingAs($this->user)
+            ->get(route('documents.preview', $cv))
+            ->assertSee('class="entry subtle"', false);
+
+        $this->actingAs($this->user)->patchJson(route('documents.update', $cv), [
+            'experience' => [['id' => (string) $this->job->id, 'bullets' => ['Punkt'], 'subtle' => false]],
+        ])->assertOk();
+
+        $this->assertFalse($cv->fresh()->content['experience'][0]['subtle']);
+        $this->assertTrue($this->job->fresh()->is_subtle, 'Das Profil bleibt, wie es ist.');
+        $this->actingAs($this->user)
+            ->get(route('documents.preview', $cv))
+            ->assertDontSee('class="entry subtle"', false);
+    }
+
+    /**
+     * Ausgeblendet heißt nicht gelöscht: Der Text bleibt, nur der Abschnitt
+     * fehlt im Lebenslauf.
+     */
+    public function test_the_profile_statement_can_be_hidden(): void
+    {
+        $cv = $this->cv();
+
+        $this->actingAs($this->user)->patchJson(route('documents.update', $cv), [
+            'statement' => 'Handgeschriebenes Statement.',
+            'statement_included' => false,
+        ])->assertOk();
+
+        $this->assertSame('Handgeschriebenes Statement.', $cv->fresh()->content['statement']);
+        $this->actingAs($this->user)
+            ->get(route('documents.preview', $cv))
+            ->assertDontSee('Handgeschriebenes Statement.');
+
+        $this->actingAs($this->user)->patchJson(route('documents.update', $cv), [
+            'statement_included' => true,
+        ])->assertOk();
+
+        $this->actingAs($this->user)
+            ->get(route('documents.preview', $cv))
+            ->assertSee('Handgeschriebenes Statement.');
+    }
+
+    /**
      * Die Oberfläche fragt vor dem Überschreiben nach — dafür muss sie wissen,
      * dass Hand angelegt wurde. Neu generieren setzt das zurück.
      */

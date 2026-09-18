@@ -99,6 +99,7 @@ class ProfileEntryController extends Controller
                 : null,
             'is_current' => $section->isDated() && $request->boolean('is_current'),
             'is_visible' => $request->boolean('is_visible', true),
+            'is_subtle' => $section === ProfileSection::Experience && $request->boolean('is_subtle'),
             'translations' => $request->input('translations', []),
         ];
     }

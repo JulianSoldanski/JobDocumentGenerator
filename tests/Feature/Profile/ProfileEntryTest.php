@@ -35,6 +35,27 @@ class ProfileEntryTest extends TestCase
         $this->assertNull($entry->end_month, 'Eine laufende Station hat kein Enddatum.');
     }
 
+    /**
+     * Nur eine Station kann leiser erscheinen — bei einer Ausbildung gibt es
+     * den Schalter nicht.
+     */
+    public function test_a_position_can_be_marked_as_less_prominent(): void
+    {
+        $user = User::factory()->create();
+
+        foreach (['experience' => 'Nebenjob', 'education' => 'Abitur'] as $section => $headline) {
+            $this->actingAs($user)->post(route('profile.entries.store'), [
+                'section' => $section,
+                'organization' => 'Irgendwo',
+                'is_subtle' => true,
+                'translations' => ['de' => ['title' => $headline, 'degree' => $headline], 'en' => []],
+            ])->assertRedirect();
+        }
+
+        $this->assertTrue($user->profileEntries()->where('section', 'experience')->sole()->is_subtle);
+        $this->assertFalse($user->profileEntries()->where('section', 'education')->sole()->is_subtle);
+    }
+
     public function test_an_entry_without_any_headline_is_rejected(): void
     {
         $user = User::factory()->create();

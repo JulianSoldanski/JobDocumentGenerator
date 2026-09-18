@@ -25,6 +25,7 @@ class ProfileEntryFactory extends Factory
             'end_month' => '2025-06',
             'is_current' => false,
             'is_visible' => true,
+            'is_subtle' => false,
             'position' => 0,
             'translations' => [
                 'de' => [

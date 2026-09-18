@@ -25,6 +25,7 @@ class ProfileEntryResource extends JsonResource
             'end_month' => $this->end_month,
             'is_current' => $this->is_current,
             'is_visible' => $this->is_visible,
+            'is_subtle' => $this->is_subtle,
             'position' => $this->position,
             'translations' => $this->translations,
             'headline' => $this->headline(Language::German),

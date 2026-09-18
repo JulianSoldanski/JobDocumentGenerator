@@ -20,6 +20,7 @@ export type ProfileEntry = {
     end_month: string | null;
     is_current: boolean;
     is_visible: boolean;
+    is_subtle: boolean;
     position: number;
     translations: Translations;
     headline: string;
@@ -107,7 +108,14 @@ type CvEntry = {
 /** Der Inhalt eines Lebenslaufs, so wie der Server ihn speichert. */
 export type CvContent = {
     statement: string;
-    experience: (CvEntry & { title: string; bullets: string[] })[];
+    /** Fehlt bei älteren Lebensläufen — dann erscheint das Profil. */
+    statement_included?: boolean;
+    experience: (CvEntry & {
+        title: string;
+        bullets: string[];
+        /** Fehlt bei älteren Lebensläufen — dann normal hervorgehoben. */
+        subtle?: boolean;
+    })[];
     education: (CvEntry & { degree: string; details: string[] })[];
     projects: {
         id: string;

@@ -27,6 +27,7 @@ class ProfileEntryRequest extends FormRequest
             'end_month' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
             'is_current' => ['boolean'],
             'is_visible' => ['boolean'],
+            'is_subtle' => ['boolean'],
             'translations' => ['required', 'array'],
             'translations.de' => ['nullable', 'array'],
             'translations.en' => ['nullable', 'array'],
