@@ -11,4 +11,6 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    /** Der Bereich, in dem der Punkt aktiv ist — etwa "/profile" für alle Profilseiten. */
+    section?: string;
 };

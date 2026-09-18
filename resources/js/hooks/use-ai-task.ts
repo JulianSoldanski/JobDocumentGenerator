@@ -22,11 +22,21 @@ const initial = <T>(): State<T> => ({
 
 /**
  * Startet einen KI-Aufruf und verfolgt seinen Stand, bis ein Ergebnis da ist.
+ *
+ * `onDone` läuft genau einmal je Aufruf, sobald ein Ergebnis vorliegt — dort
+ * gehört hin, was die Seite damit anstellt.
  */
-export function useAiTask<T>() {
+export function useAiTask<T>(onDone?: (result: T) => void) {
     const [state, setState] = useState<State<T>>(initial<T>());
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const mounted = useRef(true);
+
+    // Der Callback wird je Render neu übergeben; die Abfrage läuft aber schon.
+    const done = useRef(onDone);
+
+    useEffect(() => {
+        done.current = onDone;
+    });
 
     useEffect(() => {
         mounted.current = true;
@@ -58,6 +68,10 @@ export function useAiTask<T>() {
                         result: task.result,
                         error: task.error,
                     });
+
+                    if (task.status === 'succeeded' && task.result !== null) {
+                        done.current?.(task.result);
+                    }
 
                     return;
                 }
@@ -99,12 +113,25 @@ export function useAiTask<T>() {
         [poll],
     );
 
+    /**
+     * Verfolgt eine Aufgabe, die ein anderer Aufruf schon angelegt hat — etwa
+     * „Generieren", das mehrere auf einmal startet.
+     */
+    const track = useCallback(
+        (id: string) => {
+            setState({ status: 'queued', result: null, error: null });
+            poll(id);
+        },
+        [poll],
+    );
+
     const reset = useCallback(() => setState(initial<T>()), []);
 
     return {
         ...state,
         running: state.status === 'queued' || state.status === 'running',
         start,
+        track,
         reset,
     };
 }

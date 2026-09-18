@@ -11,11 +11,10 @@ export function AppContent({ variant = 'sidebar', children, ...props }: Props) {
         return <SidebarInset {...props}>{children}</SidebarInset>;
     }
 
+    // Keine feste Höchstbreite: Formulare begrenzen sich in ihren Layouts
+    // selbst, der Generator braucht die ganze Breite für das Dokument.
     return (
-        <main
-            className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-4 rounded-xl"
-            {...props}
-        >
+        <main className="flex h-full w-full flex-1 flex-col gap-4" {...props}>
             {children}
         </main>
     );

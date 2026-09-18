@@ -50,6 +50,7 @@ class DocumentRenderer
         return View::make($this->view($type, $layout), $data)->render();
     }
 
+    /** @return view-string */
     private function view(DocumentType $type, DocumentLayout $layout): string
     {
         return match ($type) {

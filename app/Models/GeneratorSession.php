@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use App\Enums\DocumentLayout;
+use App\Enums\DocumentType;
 use App\Enums\GenerationScope;
 use App\Enums\Language;
+use Database\Factories\GeneratorSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -44,6 +47,27 @@ use Illuminate\Support\Carbon;
 ])]
 class GeneratorSession extends Model
 {
+    /** @use HasFactory<GeneratorSessionFactory> */
+    use HasFactory;
+
+    /**
+     * Dieselben Vorgaben wie in der Migration — eine frisch angelegte Sitzung
+     * hat ihre Einstellungen damit schon vor dem ersten Lesen aus der
+     * Datenbank.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'company' => '',
+        'position' => '',
+        'contact_person' => '',
+        'city' => '',
+        'language' => 'de',
+        'layout' => 'modern',
+        'scope' => 'both',
+        'pending_research_seconds' => 0,
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -93,6 +117,66 @@ class GeneratorSession extends Model
     public function hasPosting(): bool
     {
         return trim((string) $this->job_posting) !== '';
+    }
+
+    /**
+     * Die Uhr läuft, sobald eine Stelle identifiziert ist — also ab der ersten
+     * Anzeige. Sie läuft auf dem Server, damit ein Neuladen des Tabs die
+     * Recherchezeit nicht zurücksetzt.
+     */
+    public function startTimer(): void
+    {
+        if ($this->hasPosting() && $this->timer_started_at === null) {
+            $this->forceFill(['timer_started_at' => now()]);
+        }
+    }
+
+    /**
+     * Beim Generieren wird die verstrichene Zeit gutgeschrieben. Bis es eine
+     * Bewerbung gibt, sammelt sie sich hier; danach läuft die Uhr neu an,
+     * damit ein zweites Generieren nur die Zeit seither zählt.
+     */
+    public function bankResearchTime(): void
+    {
+        if ($this->timer_started_at === null) {
+            return;
+        }
+
+        // Ein tagelang offener Tab soll keine absurde Recherchezeit ergeben.
+        $elapsed = min(
+            (int) $this->timer_started_at->diffInSeconds(now(), true),
+            (int) config('cvcreater.research_timer.max_segment_seconds'),
+        );
+
+        $this->forceFill([
+            'pending_research_seconds' => $this->pending_research_seconds + $elapsed,
+            'timer_started_at' => now(),
+        ]);
+    }
+
+    /**
+     * Legt das Dokument dieses Typs an oder ersetzt seinen Inhalt. Je Sitzung
+     * gibt es eines pro Typ; ein erneutes Generieren zählt die Fassung hoch.
+     *
+     * @param  array<string, mixed>  $content
+     */
+    public function storeDocument(DocumentType $type, array $content): Document
+    {
+        $document = $this->documents()->firstOrNew(['type' => $type->value]);
+
+        $document->forceFill([
+            'user_id' => $this->user_id,
+            'language' => $this->language,
+            // Nur der Lebenslauf hat Layouts; das Anschreiben hat genau eines.
+            'layout' => $type === DocumentType::Cv ? $this->layout : null,
+            'content' => $content,
+            'version' => $document->exists ? $document->version + 1 : 1,
+        ]);
+
+        $document->invalidateRendering();
+        $document->save();
+
+        return $document;
     }
 
     public function title(): string

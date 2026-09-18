@@ -57,3 +57,78 @@ export type ContactDetails = {
     phone: string;
     email: string;
 };
+
+export type DocumentLayout = 'modern' | 'sidebar' | 'classic';
+
+export type GenerationScope = 'both' | 'cv' | 'letter';
+
+/** Die Anzeige auf einen Blick — bleibt links stehen, während rechts editiert wird. */
+export type JobSummary = {
+    company: string;
+    role: string;
+    technologies: string[];
+};
+
+/** Der Arbeitsplatz für genau eine Stelle. */
+export type GeneratorSession = {
+    id: number;
+    job_url: string;
+    job_posting: string;
+    company: string;
+    position: string;
+    contact_person: string;
+    city: string;
+    company_address: string;
+    language: Language;
+    layout: DocumentLayout;
+    scope: GenerationScope;
+    notes: string;
+    summary: JobSummary | null;
+    title: string;
+    timer_started_at: string | null;
+    documents: SessionDocuments;
+};
+
+/**
+ * Ein erzeugtes Dokument. Die Fassung wechselt mit jedem Generieren und jeder
+ * gespeicherten Änderung; `edited` sagt, ob Hand angelegt wurde.
+ */
+export type DocumentVersion = { id: number; version: number; edited: boolean };
+
+type CvEntry = {
+    id: string;
+    organization: string;
+    start_month: string | null;
+    end_month: string | null;
+    is_current: boolean;
+};
+
+/** Der Inhalt eines Lebenslaufs, so wie der Server ihn speichert. */
+export type CvContent = {
+    statement: string;
+    experience: (CvEntry & { title: string; bullets: string[] })[];
+    education: (CvEntry & { degree: string; details: string[] })[];
+    projects: {
+        id: string;
+        title: string;
+        summary: string;
+        included: boolean;
+    }[];
+    skills: {
+        hard: { name: string }[];
+        soft: { name: string }[];
+        languages: { name: string; level: string }[];
+    };
+};
+
+/** Der Inhalt eines Anschreibens. */
+export type LetterContent = {
+    subject: string;
+    salutation: string;
+    paragraphs: string[];
+    closing: string;
+};
+
+export type SessionDocuments = Partial<
+    Record<'cv' | 'letter', DocumentVersion>
+>;
