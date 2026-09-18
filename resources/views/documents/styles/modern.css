@@ -95,24 +95,6 @@ li::marker {
     gap: 1.5em;
 }
 
-.header .contact span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4em;
-}
-
-.header .contact .address::before {
-    content: '📍';
-}
-
-.header .contact .phone::before {
-    content: '📞';
-}
-
-.header .contact .email::before {
-    content: '✉️';
-}
-
 .entry {
     margin-bottom: 0.8em;
 }

@@ -20,6 +20,13 @@ class ApplicationStatistics
 {
     private const FIRST_ROW = 'Erstellt / Versendet';
 
+    private const NO_INTERVIEW = 'Kein Gespräch';
+
+    /** Kürzer war keine Arbeit an der Bewerbung, nur ein Durchklicken. */
+    private const MIN_EFFORT_SECONDS = 20;
+
+    private const INTERVIEWS = [ApplicationStage::Interview1, ApplicationStage::Interview2, ApplicationStage::Interview3];
+
     /**
      * @param  Collection<int, Application>  $applications  mit geladenen `stageEvents`
      */
@@ -50,8 +57,53 @@ class ApplicationStatistics
             ['label' => self::FIRST_ROW, 'count' => $this->applications->count()],
             ...array_map(
                 fn (ApplicationStage $stage): array => ['label' => $stage->label(), 'count' => $this->reached($stage)],
-                [ApplicationStage::Interview1, ApplicationStage::Interview2, ApplicationStage::Interview3],
+                self::INTERVIEWS,
             ),
+        ];
+    }
+
+    /**
+     * Wie weit jede Bewerbung gekommen ist — jede genau einmal gezählt, nach
+     * ihrer höchsten Stufe. Anders als im Funnel ergeben die Teile das Ganze.
+     *
+     * @return array<int, array{label: string, count: int}>
+     */
+    public function furthest(): array
+    {
+        $counts = $this->applications->countBy(function (Application $application): string {
+            $highest = $application->highestStageReached();
+
+            return in_array($highest, self::INTERVIEWS, true) ? $highest->label() : self::NO_INTERVIEW;
+        });
+
+        return array_map(
+            fn (string $label): array => ['label' => $label, 'count' => $counts[$label] ?? 0],
+            [self::NO_INTERVIEW, ...array_map(fn (ApplicationStage $stage): string => $stage->label(), self::INTERVIEWS)],
+        );
+    }
+
+    /**
+     * Die Zeit, die im Generator in eine Bewerbung floss, getrennt danach, ob
+     * sie zum ersten Gespräch führte oder ohne eines abgesagt wurde.
+     *
+     * Nur Bewerbungen mit gemessener Zeit (ab 20 Sekunden) und feststehendem
+     * Ausgang zählen; wie viele deshalb fehlen, steht daneben.
+     *
+     * @return array{groups: array<int, array{label: string, invited: bool, median_seconds: float|null, applications: array<int, array{id: int, company: string, position: string, seconds: int}>}>, unmeasured: int, pending: int}
+     */
+    public function effort(): array
+    {
+        $measured = $this->applications->filter(fn (Application $application): bool => $application->research_seconds >= self::MIN_EFFORT_SECONDS);
+        $invited = $measured->filter(fn (Application $application): bool => self::hasReached($application, ApplicationStage::Interview1));
+        $declined = $measured->filter(fn (Application $application): bool => $application->isRejected() && ! self::hasReached($application, ApplicationStage::Interview1));
+
+        return [
+            'groups' => [
+                self::effortGroup('Zum Gespräch eingeladen', true, $invited),
+                self::effortGroup('Absage ohne Gespräch', false, $declined),
+            ],
+            'unmeasured' => $this->applications->count() - $measured->count(),
+            'pending' => $measured->count() - $invited->count() - $declined->count(),
         ];
     }
 
@@ -96,7 +148,7 @@ class ApplicationStatistics
     {
         $groups = [self::FIRST_ROW => []];
 
-        foreach ([ApplicationStage::Interview1, ApplicationStage::Interview2, ApplicationStage::Interview3] as $stage) {
+        foreach (self::INTERVIEWS as $stage) {
             $groups[$stage->label()] = [];
         }
 
@@ -160,8 +212,32 @@ class ApplicationStatistics
     private function reached(ApplicationStage $stage): int
     {
         return $this->applications
-            ->filter(fn (Application $application): bool => ($application->highestStageReached()?->index() ?? -1) >= $stage->index())
+            ->filter(fn (Application $application): bool => self::hasReached($application, $stage))
             ->count();
+    }
+
+    private static function hasReached(Application $application, ApplicationStage $stage): bool
+    {
+        return ($application->highestStageReached()?->index() ?? -1) >= $stage->index();
+    }
+
+    /**
+     * @param  Collection<int, Application>  $applications
+     * @return array{label: string, invited: bool, median_seconds: float|null, applications: array<int, array{id: int, company: string, position: string, seconds: int}>}
+     */
+    private static function effortGroup(string $label, bool $invited, Collection $applications): array
+    {
+        return [
+            'label' => $label,
+            'invited' => $invited,
+            'median_seconds' => self::median($applications->map(fn (Application $application): float => $application->research_seconds)->values()->all()),
+            'applications' => $applications->sortBy('research_seconds')->map(fn (Application $application): array => [
+                'id' => $application->id,
+                'company' => $application->company,
+                'position' => $application->position,
+                'seconds' => $application->research_seconds,
+            ])->values()->all(),
+        ];
     }
 
     /**

@@ -6,7 +6,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { date } from '@/lib/applications';
+import { date, duration } from '@/lib/applications';
 import { cn } from '@/lib/utils';
 import { show } from '@/actions/App/Http/Controllers/ApplicationController';
 
@@ -17,6 +17,18 @@ type RejectedApplication = {
     rejected_at: string;
 };
 
+type EffortGroup = {
+    label: string;
+    invited: boolean;
+    median_seconds: number | null;
+    applications: {
+        id: number;
+        company: string;
+        position: string;
+        seconds: number;
+    }[];
+};
+
 type Props = {
     summary: {
         total: number;
@@ -25,6 +37,8 @@ type Props = {
         interviewed: number;
     };
     funnel: { label: string; count: number }[];
+    furthest: { label: string; count: number }[];
+    effort: { groups: EffortGroup[]; unmeasured: number; pending: number };
     durations: { label: string; median_days: number | null; samples: number }[];
     rejections: {
         label: string;
@@ -40,6 +54,21 @@ type Props = {
  */
 const BAR = 'bg-[#2a78d6] dark:bg-[#3987e5]';
 
+/** Was nur Kontext ist, bleibt grau — so tritt das Blau hervor. */
+const CONTEXT = 'bg-[#898781]';
+
+/**
+ * Wie weit es ging, als Stufen einer Farbe: Grau für kein Gespräch, dann
+ * kräftiger, je weiter. Im Dunkeln laufen die Stufen zum Hellen hin, damit
+ * das weiteste Gespräch auch dort am deutlichsten ist.
+ */
+const REACHED = [
+    'text-[#b5b4ab] dark:text-[#4a4945]',
+    'text-[#86b6ef] dark:text-[#184f95]',
+    'text-[#2a78d6] dark:text-[#3987e5]',
+    'text-[#104281] dark:text-[#9ec5f4]',
+];
+
 const percent = (part: number, whole: number) =>
     whole > 0 ? `${Math.round((part / whole) * 100)} %` : '–';
 
@@ -53,6 +82,8 @@ const days = (value: number) =>
 export default function Index({
     summary,
     funnel,
+    furthest,
+    effort,
     durations,
     rejections,
     months,
@@ -97,6 +128,20 @@ export default function Index({
                 </div>
 
                 <div className="grid gap-8 lg:grid-cols-2">
+                    <Card
+                        title="Wie weit es ging"
+                        description="Jede Bewerbung genau einmal, nach dem weitesten Gespräch — auch wenn danach abgesagt wurde."
+                    >
+                        <Donut slices={furthest} total={summary.total} />
+                    </Card>
+
+                    <Card
+                        title="Erstellungsdauer und Einladung"
+                        description={`Die im Generator gemessene Zeit je Bewerbung, der Strich ist der Median. Nicht enthalten: ${effort.unmeasured} ohne gemessene Zeit oder unter 20 Sek., ${effort.pending} noch ohne Antwort.`}
+                    >
+                        <Strip groups={effort.groups} />
+                    </Card>
+
                     <Card
                         title="Funnel"
                         description="Wie viele Bewerbungen welche Stufe erreicht haben — Erstellt und Versendet als eine Zeile."
@@ -380,6 +425,244 @@ function Columns({ months }: { months: Props['months'] }) {
                     </Tooltip>
                 );
             })}
+        </div>
+    );
+}
+
+/**
+ * Ein Ring, in der Mitte die Gesamtzahl. Die Legende daneben trägt die
+ * Zahlen, damit die Farbe allein nichts erklären muss.
+ */
+function Donut({
+    slices,
+    total,
+}: {
+    slices: Props['furthest'];
+    total: number;
+}) {
+    const [active, setActive] = useState<string | null>(null);
+
+    // Winkel im Uhrzeigersinn ab zwölf Uhr, als Anteil am ganzen Ring.
+    const starts = slices.map((_, position) =>
+        slices.slice(0, position).reduce((sum, slice) => sum + slice.count, 0),
+    );
+
+    const hover = (label: string) => ({
+        onPointerEnter: () => setActive(label),
+        onPointerLeave: () => setActive(null),
+        onFocus: () => setActive(label),
+        onBlur: () => setActive(null),
+    });
+
+    return (
+        <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
+            <div className="relative size-44 shrink-0">
+                <svg viewBox="0 0 200 200" className="size-full">
+                    {slices.map(
+                        (slice, position) =>
+                            slice.count > 0 && (
+                                <Tooltip key={slice.label}>
+                                    <TooltipTrigger asChild>
+                                        <path
+                                            d={sector(
+                                                starts[position] / total,
+                                                (starts[position] +
+                                                    slice.count) /
+                                                    total,
+                                            )}
+                                            tabIndex={0}
+                                            {...hover(slice.label)}
+                                            className={cn(
+                                                'stroke-background fill-current stroke-2 transition-opacity outline-none',
+                                                REACHED[position],
+                                                active !== null &&
+                                                    active !== slice.label &&
+                                                    'opacity-35',
+                                            )}
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {slice.label}: {slice.count} von {total}{' '}
+                                        Bewerbungen
+                                    </TooltipContent>
+                                </Tooltip>
+                            ),
+                    )}
+                </svg>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-semibold tabular-nums">
+                        {total}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                        Bewerbungen
+                    </span>
+                </div>
+            </div>
+
+            <ul className="min-w-44 flex-1 space-y-1 text-sm">
+                {slices.map((slice, position) => (
+                    <li
+                        key={slice.label}
+                        {...hover(slice.label)}
+                        className="flex items-center gap-2 rounded-md py-0.5"
+                    >
+                        <span
+                            className={cn(
+                                'size-2.5 shrink-0 rounded-full bg-current',
+                                REACHED[position],
+                            )}
+                        />
+                        <span className="flex-1">{slice.label}</span>
+                        <span className="tabular-nums">{slice.count}</span>
+                        <span className="text-muted-foreground w-11 text-right tabular-nums">
+                            {percent(slice.count, total)}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+/**
+ * Ein Ringstück zwischen zwei Anteilen (0 bis 1) des Umlaufs. Ein ganzer
+ * Ring bleibt eine Haaresbreite offen — Anfang und Ende eines Bogens dürfen
+ * nicht zusammenfallen.
+ */
+function sector(from: number, to: number) {
+    const outer = 92;
+    const inner = 60;
+    const turn = Math.min(to - from, 0.99999);
+    const point = (radius: number, share: number) => {
+        const angle = 2 * Math.PI * share;
+
+        return `${100 + radius * Math.sin(angle)} ${100 - radius * Math.cos(angle)}`;
+    };
+    const large = turn > 0.5 ? 1 : 0;
+
+    return [
+        `M ${point(outer, from)}`,
+        `A ${outer} ${outer} 0 ${large} 1 ${point(outer, from + turn)}`,
+        `L ${point(inner, from + turn)}`,
+        `A ${inner} ${inner} 0 ${large} 0 ${point(inner, from)}`,
+        'Z',
+    ].join(' ');
+}
+
+/**
+ * Wegmarken der Zeitachse. Sie ist logarithmisch — sonst drängten sich alle
+ * kurzen Bewerbungen am linken Rand, weil einzelne Stunden dauerten.
+ */
+const TICKS = [
+    { seconds: 10, label: '10 Sek.' },
+    { seconds: 60, label: '1 Min.' },
+    { seconds: 5 * 60, label: '5 Min.' },
+    { seconds: 30 * 60, label: '30 Min.' },
+    { seconds: 3 * 60 * 60, label: '3 Std.' },
+];
+
+/** Nebeneinanderliegende Punkte weichen abwechselnd nach oben und unten aus. */
+const LANES = [0, -9, 9];
+
+/**
+ * Je Ausgang eine Zeile, je Bewerbung ein Punkt auf der Zeitachse. So bleibt
+ * sichtbar, wie wenige Fälle hinter einem Median stehen.
+ */
+function Strip({ groups }: { groups: EffortGroup[] }) {
+    const seconds = groups.flatMap((group) =>
+        group.applications.map((application) => application.seconds),
+    );
+
+    if (seconds.length === 0) {
+        return (
+            <p className="text-muted-foreground text-sm">
+                Noch keine Bewerbung mit gemessener Zeit und feststehendem
+                Ausgang.
+            </p>
+        );
+    }
+
+    const low = Math.log(Math.min(...seconds) / 1.6);
+    const high = Math.log(Math.max(...seconds) * 1.6);
+    const x = (value: number) => ((Math.log(value) - low) / (high - low)) * 100;
+    const ticks = TICKS.filter(
+        (tick) => x(tick.seconds) > 4 && x(tick.seconds) < 96,
+    );
+
+    return (
+        <div className="space-y-3">
+            {groups.map((group) => (
+                <div key={group.label} className="flex items-center gap-3">
+                    <div className="w-36 shrink-0">
+                        <p className="text-sm">{group.label}</p>
+                        <p className="text-muted-foreground text-xs">
+                            {group.applications.length} · Median{' '}
+                            {group.median_seconds === null
+                                ? '–'
+                                : duration(group.median_seconds)}
+                        </p>
+                    </div>
+                    <div className="relative h-14 flex-1">
+                        {ticks.map((tick) => (
+                            <span
+                                key={tick.seconds}
+                                className="bg-border absolute inset-y-0 w-px"
+                                style={{ left: `${x(tick.seconds)}%` }}
+                            />
+                        ))}
+                        {group.median_seconds !== null && (
+                            <span
+                                className="bg-foreground absolute inset-y-1 w-0.5 -translate-x-1/2 rounded-full"
+                                style={{ left: `${x(group.median_seconds)}%` }}
+                            />
+                        )}
+                        {group.applications.map((application, position) => (
+                            <Tooltip key={application.id}>
+                                <TooltipTrigger asChild>
+                                    <Link
+                                        href={show.url({
+                                            application: application.id,
+                                        })}
+                                        className="absolute top-1/2 flex size-5 -translate-1/2 items-center justify-center rounded-full"
+                                        style={{
+                                            left: `${x(application.seconds)}%`,
+                                            marginTop:
+                                                LANES[position % LANES.length],
+                                        }}
+                                    >
+                                        <span
+                                            className={cn(
+                                                'ring-background size-2.5 rounded-full ring-2',
+                                                group.invited ? BAR : CONTEXT,
+                                            )}
+                                        />
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {application.company} ·{' '}
+                                    {application.position}:{' '}
+                                    {duration(application.seconds)}
+                                </TooltipContent>
+                            </Tooltip>
+                        ))}
+                    </div>
+                </div>
+            ))}
+
+            <div className="flex gap-3">
+                <div className="w-36 shrink-0" />
+                <div className="relative h-4 flex-1">
+                    {ticks.map((tick) => (
+                        <span
+                            key={tick.seconds}
+                            className="text-muted-foreground absolute -translate-x-1/2 text-[11px] whitespace-nowrap"
+                            style={{ left: `${x(tick.seconds)}%` }}
+                        >
+                            {tick.label}
+                        </span>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }

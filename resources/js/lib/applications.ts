@@ -35,8 +35,12 @@ export function ago(iso: string | null): string {
     return days < 1 ? 'heute' : days === 1 ? 'gestern' : `vor ${days} Tagen`;
 }
 
-/** Recherchezeit lesbar: „45 Min.", „1 Std. 20 Min.". */
+/** Recherchezeit lesbar: „40 Sek.", „45 Min.", „1 Std. 20 Min.". */
 export function duration(seconds: number): string {
+    if (seconds < 60) {
+        return `${Math.round(seconds)} Sek.`;
+    }
+
     const minutes = Math.round(seconds / 60);
 
     if (minutes < 60) {

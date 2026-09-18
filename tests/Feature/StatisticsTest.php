@@ -29,9 +29,9 @@ class StatisticsTest extends TestCase
     /**
      * @param  array<int, array{0: ApplicationStage, 1: string}>  $history
      */
-    private function application(array $history): Application
+    private function application(array $history, int $seconds = 0): Application
     {
-        $application = Application::factory()->for($this->user)->create();
+        $application = Application::factory()->for($this->user)->create(['research_seconds' => $seconds]);
 
         foreach ($history as [$stage, $at]) {
             $application->moveTo($stage, now()->parse($at));
@@ -75,6 +75,42 @@ class StatisticsTest extends TestCase
         $this->assertSame(['Erstellt / Versendet', 3], [$funnel[0]['label'], $funnel[0]['count']]);
         $this->assertSame(['1. Gespräch', 1], [$funnel[1]['label'], $funnel[1]['count']]);
         $this->assertSame(0, $funnel[2]['count']);
+    }
+
+    /**
+     * Jede Bewerbung zählt genau einmal, nach ihrer höchsten Stufe — auch
+     * wenn danach abgesagt wurde.
+     */
+    public function test_furthest_counts_each_application_once(): void
+    {
+        $this->profile();
+
+        $furthest = collect($this->statistics()->furthest())->pluck('count', 'label')->all();
+
+        $this->assertSame(['Kein Gespräch' => 2, '1. Gespräch' => 1, '2. Gespräch' => 0, '3. Gespräch' => 0], $furthest);
+    }
+
+    /**
+     * Eine Absage nach dem Gespräch zählt als Einladung. Ohne gemessene Zeit,
+     * unter 20 Sekunden oder ohne Antwort bleibt eine Bewerbung draußen.
+     */
+    public function test_effort_compares_measured_applications_by_their_outcome(): void
+    {
+        $this->application([[ApplicationStage::Sent, '2026-07-01'], [ApplicationStage::Interview1, '2026-07-05'], [ApplicationStage::Rejected, '2026-07-11']], 1800);
+        $this->application([[ApplicationStage::Sent, '2026-08-01'], [ApplicationStage::Rejected, '2026-08-05']], 240);
+        $this->application([[ApplicationStage::Sent, '2026-08-02'], [ApplicationStage::Rejected, '2026-08-06']], 120);
+        $this->application([[ApplicationStage::Sent, '2026-08-03'], [ApplicationStage::Rejected, '2026-08-07']]);
+        $this->application([[ApplicationStage::Sent, '2026-08-04'], [ApplicationStage::Rejected, '2026-08-08']], 19);
+        $this->application([[ApplicationStage::Sent, '2026-09-10']], 300);
+
+        $effort = $this->statistics()->effort();
+        [$invited, $declined] = $effort['groups'];
+
+        $this->assertSame([1800], array_column($invited['applications'], 'seconds'));
+        $this->assertSame([120, 240], array_column($declined['applications'], 'seconds'));
+        $this->assertEqualsWithDelta(180.0, $declined['median_seconds'], 0.01);
+        $this->assertSame(2, $effort['unmeasured']);
+        $this->assertSame(1, $effort['pending']);
     }
 
     /**
@@ -128,7 +164,9 @@ class StatisticsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('summary.total', 3)
                 ->where('summary.rejected', 2)
-                ->where('summary.interviewed', 1));
+                ->where('summary.interviewed', 1)
+                ->has('furthest', 4)
+                ->where('effort.unmeasured', 3));
     }
 
     public function test_without_applications_the_page_still_opens(): void

@@ -8,7 +8,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Funnel, Verweildauer, Absagen, Verlauf — alles aus der Stufen-Historie.
+ * Funnel, Verweildauer, Absagen, Verlauf — alles aus der Stufen-Historie,
+ * dazu die Erstellungsdauer aus dem Generator.
  */
 class StatisticsController extends Controller
 {
@@ -21,6 +22,8 @@ class StatisticsController extends Controller
         return Inertia::render('statistics/index', [
             'summary' => $statistics->summary(),
             'funnel' => $statistics->funnel(),
+            'furthest' => $statistics->furthest(),
+            'effort' => $statistics->effort(),
             'durations' => $statistics->durations(),
             'rejections' => $statistics->rejections(),
             'months' => $statistics->months(),
