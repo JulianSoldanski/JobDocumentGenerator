@@ -42,6 +42,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Der Zähler an der Queue im Menü: wie viel noch offen ist.
+            'queueOpen' => fn (): int => $request->user()?->queueItems()->open()->count() ?? 0,
         ];
     }
 }

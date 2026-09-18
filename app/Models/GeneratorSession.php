@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ApplicationStage;
 use App\Enums\DocumentLayout;
 use App\Enums\DocumentType;
 use App\Enums\GenerationScope;
@@ -132,11 +133,38 @@ class GeneratorSession extends Model
     }
 
     /**
-     * Beim Generieren wird die verstrichene Zeit gutgeschrieben. Bis es eine
-     * Bewerbung gibt, sammelt sie sich hier; danach läuft die Uhr neu an,
-     * damit ein zweites Generieren nur die Zeit seither zählt.
+     * Die Bewerbung zu dieser Stelle — gefunden über Unternehmen und Position,
+     * damit mehrfaches Generieren für dieselbe Stelle keine Karteileichen
+     * erzeugt. Eine neue beginnt auf „Erstellt".
      */
-    public function bankResearchTime(): void
+    public function attachApplication(): Application
+    {
+        $application = $this->user->applications()
+            ->where('company_key', Application::key($this->company))
+            ->where('position_key', Application::key($this->position))
+            ->first();
+
+        if ($application === null) {
+            $application = $this->user->applications()->create([
+                'company' => trim($this->company),
+                'position' => trim($this->position),
+                'job_url' => $this->job_url,
+                'job_posting' => $this->job_posting,
+            ]);
+            $application->moveTo(ApplicationStage::Created);
+        }
+
+        $this->application()->associate($application);
+
+        return $application;
+    }
+
+    /**
+     * Beim Generieren wird die verstrichene Zeit der Bewerbung gutgeschrieben;
+     * danach läuft die Uhr neu an, damit ein zweites Generieren nur die Zeit
+     * seither zählt.
+     */
+    public function creditResearchTime(Application $application): void
     {
         if ($this->timer_started_at === null) {
             return;
@@ -148,24 +176,36 @@ class GeneratorSession extends Model
             (int) config('cvcreater.research_timer.max_segment_seconds'),
         );
 
+        $application->increment('research_seconds', $this->pending_research_seconds + $elapsed);
+
         $this->forceFill([
-            'pending_research_seconds' => $this->pending_research_seconds + $elapsed,
+            'pending_research_seconds' => 0,
             'timer_started_at' => now(),
         ]);
     }
 
     /**
      * Legt das Dokument dieses Typs an oder ersetzt seinen Inhalt. Je Sitzung
-     * gibt es eines pro Typ; ein erneutes Generieren zählt die Fassung hoch.
+     * und Bewerbung gibt es eines pro Typ; ein erneutes Generieren zählt die
+     * Fassung hoch.
+     *
+     * Die Bewerbung gehört zum Schlüssel: Wechselt die Sitzung auf eine andere
+     * Stelle, entsteht ein neues Dokument — der Snapshot der alten Bewerbung
+     * bleibt, wie er verschickt wurde.
      *
      * @param  array<string, mixed>  $content
      */
     public function storeDocument(DocumentType $type, array $content): Document
     {
-        $document = $this->documents()->firstOrNew(['type' => $type->value]);
+        $document = $this->documents()->firstOrNew([
+            'type' => $type->value,
+            'application_id' => $this->application_id,
+        ]);
 
         $document->forceFill([
             'user_id' => $this->user_id,
+            // Der Snapshot der Bewerbung: was für genau diese Stelle entstand.
+            'application_id' => $this->application_id,
             'language' => $this->language,
             // Nur der Lebenslauf hat Layouts; das Anschreiben hat genau eines.
             'layout' => $type === DocumentType::Cv ? $this->layout : null,

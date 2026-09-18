@@ -56,6 +56,19 @@ class QueueItem extends Model
     }
 
     /**
+     * Erledigt, sobald für die Stelle generiert wurde — verknüpft mit der
+     * Bewerbung, die dabei entstand.
+     */
+    public function markDone(Application $application): void
+    {
+        $this->forceFill([
+            'status' => QueueItemStatus::Done,
+            'processed_at' => now(),
+            'application_id' => $application->id,
+        ])->save();
+    }
+
+    /**
      * Offene Einträge zuerst, davon die ältesten oben: die Queue wird von
      * hinten abgearbeitet. Alles andere liegt darunter im Archiv, neueste
      * zuerst.

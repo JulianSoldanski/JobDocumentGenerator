@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ApplicationStage;
+use Carbon\CarbonInterface;
 use Database\Factories\ApplicationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -43,6 +44,16 @@ class Application extends Model
     /** @use HasFactory<ApplicationFactory> */
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        // Der Vergleichsschlüssel folgt immer den Namen — beim Generieren wie
+        // beim manuellen Anlegen.
+        static::saving(function (Application $application): void {
+            $application->company_key = self::key($application->company);
+            $application->position_key = self::key($application->position);
+        });
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -74,6 +85,47 @@ class Application extends Model
     public function queueItems(): HasMany
     {
         return $this->hasMany(QueueItem::class);
+    }
+
+    /** @return HasMany<GeneratorSession, $this> */
+    public function generatorSessions(): HasMany
+    {
+        return $this->hasMany(GeneratorSession::class);
+    }
+
+    /**
+     * Wechselt die Stufe — als neues Ereignis, nie durch Überschreiben.
+     *
+     * Der Wechsel auf „Versendet" setzt das Bewerbungsdatum, sofern noch
+     * keines eingetragen ist.
+     */
+    public function moveTo(ApplicationStage $stage, ?CarbonInterface $at = null): void
+    {
+        $at ??= now();
+
+        $this->stageEvents()->create(['stage' => $stage, 'occurred_at' => $at]);
+
+        $changes = ['current_stage' => $stage];
+
+        if ($stage === ApplicationStage::Sent && $this->applied_on === null) {
+            $changes['applied_on'] = $at->toDateString();
+        }
+
+        $this->forceFill($changes)->save();
+        $this->unsetRelation('stageEvents');
+    }
+
+    /**
+     * Nach einer Absage zurück auf die Stufe, auf der die Bewerbung zuletzt
+     * stand — der zurückgelegte Weg geht nicht verloren.
+     */
+    public function reactivate(?CarbonInterface $at = null): void
+    {
+        $last = $this->stageEvents
+            ->filter(fn (StageEvent $event): bool => $event->stage->isLinear())
+            ->last();
+
+        $this->moveTo($last->stage ?? ApplicationStage::Created, $at);
     }
 
     /**
@@ -111,7 +163,7 @@ class Application extends Model
     /**
      * Der Zeitpunkt, seit dem die Bewerbung in der aktuellen Stufe liegt.
      */
-    public function currentStageSince(): ?Carbon
+    public function currentStageSince(): ?CarbonInterface
     {
         return $this->stageEvents->last()?->occurred_at;
     }

@@ -33,8 +33,11 @@ class GeneratorSessionResource extends JsonResource
             'summary' => $this->summary,
             'title' => $this->title(),
             'timer_started_at' => $this->timer_started_at?->toIso8601String(),
+            'application_id' => $this->application_id,
             // Je Typ die aktuelle Fassung — die Vorschau lädt sie über ihre ID.
-            'documents' => $this->documents()->get()->mapWithKeys(
+            // Nur die Dokumente der aktuellen Stelle — frühere Bewerbungen
+            // behalten ihre eigenen.
+            'documents' => $this->documents()->where('application_id', $this->application_id)->get()->mapWithKeys(
                 fn (Document $document): array => [
                     $document->type->value => [
                         'id' => $document->id,

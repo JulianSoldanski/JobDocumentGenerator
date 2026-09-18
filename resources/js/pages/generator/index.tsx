@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { Check } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Check, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { DocumentPanel } from '@/components/generator/document-panel';
 import { GenerationSettings } from '@/components/generator/generation-settings';
@@ -9,12 +9,15 @@ import {
 } from '@/components/generator/job-fields';
 import { JobSummaryPanel } from '@/components/generator/job-summary';
 import { PostingInput } from '@/components/generator/posting-input';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useAiTask } from '@/hooks/use-ai-task';
 import { postJson, RequestError } from '@/lib/http';
+import { show as showApplication } from '@/actions/App/Http/Controllers/ApplicationController';
 import { store as extractFields } from '@/actions/App/Http/Controllers/Generator/ExtractFieldsController';
 import { store as generateDocuments } from '@/actions/App/Http/Controllers/Generator/GenerateController';
 import { store as createSummary } from '@/actions/App/Http/Controllers/Generator/JobSummaryController';
+import { store as newSession } from '@/actions/App/Http/Controllers/Generator/GeneratorController';
 import { update } from '@/actions/App/Http/Controllers/Generator/SessionController';
 import type {
     DocumentLayout,
@@ -42,6 +45,7 @@ type FieldsResult = {
 };
 
 type GenerateResponse = {
+    application_id: number;
     tasks: Record<'cv' | 'letter' | 'summary', string | null>;
 };
 
@@ -75,6 +79,7 @@ export default function Index({ session }: { session: GeneratorSession }) {
         session.documents,
     );
     const [starting, setStarting] = useState(false);
+    const [applicationId, setApplicationId] = useState(session.application_id);
     const [generateError, setGenerateError] = useState<string | null>(null);
 
     const change = (values: Partial<SessionForm>) => {
@@ -144,10 +149,12 @@ export default function Index({ session }: { session: GeneratorSession }) {
                 return;
             }
 
-            const { tasks } = await postJson<GenerateResponse>(
+            const { application_id, tasks } = await postJson<GenerateResponse>(
                 generateDocuments.url({ session: session.id }),
                 {},
             );
+
+            setApplicationId(application_id);
 
             if (tasks.cv) {
                 cv.track(tasks.cv);
@@ -186,23 +193,49 @@ export default function Index({ session }: { session: GeneratorSession }) {
             <div className="lg:grid lg:h-[calc(100dvh-3.5rem)] lg:grid-cols-[400px_minmax(0,1fr)] xl:grid-cols-[440px_minmax(0,1fr)]">
                 <aside className="space-y-8 px-4 py-5 lg:overflow-y-auto lg:border-r">
                     <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium">Stelle</p>
+                        <div className="flex items-baseline gap-3">
+                            <p className="font-medium">Stelle</p>
+                            {/* Beim Generieren entsteht die Bewerbung — hier der Weg dorthin. */}
+                            {applicationId && (
+                                <Link
+                                    href={showApplication.url({
+                                        application: applicationId,
+                                    })}
+                                    className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
+                                >
+                                    Zur Bewerbung
+                                </Link>
+                            )}
+                        </div>
 
-                        {status !== 'clean' && (
-                            <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                                {status === 'saving' ? (
-                                    <>
-                                        <Spinner className="h-4 w-4" />
-                                        Speichern
-                                    </>
-                                ) : (
-                                    <>
-                                        <Check className="h-4 w-4" />
-                                        Gespeichert
-                                    </>
-                                )}
-                            </p>
-                        )}
+                        <div className="flex items-center gap-3">
+                            {status !== 'clean' && (
+                                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                                    {status === 'saving' ? (
+                                        <>
+                                            <Spinner className="h-4 w-4" />
+                                            Speichern
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="h-4 w-4" />
+                                            Gespeichert
+                                        </>
+                                    )}
+                                </p>
+                            )}
+                            {/* Eine neue Stelle bekommt einen eigenen Arbeitsplatz —
+                                die bisherige bleibt samt Bewerbung, wie sie ist. */}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.post(newSession.url())}
+                            >
+                                <Plus className="h-4 w-4" />
+                                Neue Stelle
+                            </Button>
+                        </div>
                     </div>
 
                     {error && (

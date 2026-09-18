@@ -4,6 +4,7 @@ namespace Tests\Feature\Generator;
 
 use App\Ai\TaskRegistry;
 use App\Enums\AiTaskType;
+use App\Enums\ApplicationStage;
 use App\Enums\DocumentType;
 use App\Enums\GenerationScope;
 use App\Enums\Language;
@@ -117,6 +118,103 @@ class GenerateDocumentsTest extends TestCase
     }
 
     /**
+     * Jedes Generieren legt die Bewerbung an — dedupliziert über Unternehmen
+     * und Position, damit mehrfaches Generieren keine Karteileichen erzeugt.
+     */
+    public function test_generating_creates_the_application_once(): void
+    {
+        Queue::fake();
+        ['user' => $user, 'session' => $session] = $this->profile();
+
+        $response = $this->actingAs($user)->postJson(route('generator.generate', $session))->assertOk();
+        $this->actingAs($user)->postJson(route('generator.generate', $session))->assertOk();
+
+        // Eine zweite Sitzung für dieselbe Stelle, anders geschrieben.
+        $again = GeneratorSession::factory()->for($user)->withPosting()->create([
+            'company' => '  mustertech gmbh ',
+            'position' => 'FULLSTACK-ENTWICKLERIN',
+        ]);
+        $this->actingAs($user)->postJson(route('generator.generate', $again))->assertOk();
+
+        $application = $user->applications()->sole();
+        $this->assertSame($application->id, $response->json('application_id'));
+        $this->assertSame('MusterTech GmbH', $application->company);
+        $this->assertSame(ApplicationStage::Created, $application->current_stage);
+        $this->assertCount(1, $application->stageEvents, 'Erneutes Generieren ist kein Stufenwechsel.');
+        $this->assertSame($application->id, $again->refresh()->application_id);
+    }
+
+    /**
+     * Wechselt dieselbe Sitzung auf eine andere Stelle, darf der Snapshot der
+     * ersten Bewerbung nicht mitwandern — er ist, was verschickt wurde.
+     */
+    public function test_a_session_switching_jobs_leaves_the_first_snapshot_alone(): void
+    {
+        Queue::fake();
+        $profile = $this->profile();
+        ['user' => $user, 'session' => $session] = $profile;
+
+        $this->actingAs($user)->postJson(route('generator.generate', $session))->assertOk();
+        $this->fakeSelection(['statement' => 'Für MusterTech.']);
+        $this->runTask($user, AiTaskType::CvSelection, $session);
+
+        $session->forceFill(['company' => 'Andere GmbH'])->save();
+        $this->actingAs($user)->postJson(route('generator.generate', $session))->assertOk();
+        $this->fakeSelection(['statement' => 'Für Andere.']);
+        $this->runTask($user, AiTaskType::CvSelection, $session->refresh());
+
+        $first = $user->applications()->where('company', 'MusterTech GmbH')->sole();
+        $second = $user->applications()->where('company', 'Andere GmbH')->sole();
+        $this->assertSame('Für MusterTech.', $first->documents()->sole()->content['statement']);
+        $this->assertSame('Für Andere.', $second->documents()->sole()->content['statement']);
+    }
+
+    public function test_a_new_job_gets_its_own_session(): void
+    {
+        ['user' => $user, 'session' => $session] = $this->profile();
+
+        $response = $this->actingAs($user)->post(route('generator.store'));
+
+        $fresh = $user->generatorSessions()->latest('id')->first();
+        $response->assertRedirect(route('generator.show', $fresh));
+        $this->assertNotSame($session->id, $fresh->id);
+        $this->assertSame('', $fresh->company);
+        $this->assertSame('MusterTech GmbH', $session->fresh()->company, 'Die bisherige Stelle bleibt, wie sie ist.');
+    }
+
+    public function test_without_company_and_position_there_is_no_application_to_file_it_under(): void
+    {
+        Queue::fake();
+        ['user' => $user, 'session' => $session] = $this->profile();
+        $session->forceFill(['position' => ''])->save();
+
+        $this->actingAs($user)
+            ->postJson(route('generator.generate', $session))
+            ->assertStatus(422)
+            ->assertJsonPath('message', fn (string $message): bool => str_contains($message, 'Unternehmen und Position'));
+
+        Queue::assertNothingPushed();
+        $this->assertSame(0, $user->applications()->count());
+    }
+
+    /**
+     * Der Snapshot: Die Dokumente hängen an der Bewerbung, für die sie
+     * entstanden sind.
+     */
+    public function test_the_documents_become_the_applications_snapshot(): void
+    {
+        Queue::fake();
+        $profile = $this->profile();
+        $this->actingAs($profile['user'])->postJson(route('generator.generate', $profile['session']))->assertOk();
+
+        $this->fakeSelection();
+        $this->runTask($profile['user'], AiTaskType::CvSelection, $profile['session']);
+
+        $application = $profile['user']->applications()->sole();
+        $this->assertSame(DocumentType::Cv, $application->documents()->sole()->type);
+    }
+
+    /**
      * Ein leeres Profil ergäbe einen leeren Lebenslauf und ein Anschreiben
      * voller Erfundenem — das muss auffallen, bevor ein Aufruf Geld kostet.
      */
@@ -143,7 +241,7 @@ class GenerateDocumentsTest extends TestCase
         $this->actingAs($user)->postJson(route('generator.generate', $session))->assertOk();
 
         $session->refresh();
-        $this->assertEqualsWithDelta(25 * 60, $session->pending_research_seconds, 5);
+        $this->assertEqualsWithDelta(25 * 60, $session->application->research_seconds, 5);
         $this->assertTrue($session->timer_started_at->isAfter(now()->subMinute()), 'Die Uhr läuft danach neu an.');
     }
 
@@ -156,7 +254,7 @@ class GenerateDocumentsTest extends TestCase
 
         $this->actingAs($user)->postJson(route('generator.generate', $session))->assertOk();
 
-        $this->assertSame(3600, $session->refresh()->pending_research_seconds);
+        $this->assertSame(3600, $session->refresh()->application->research_seconds);
     }
 
     /**

@@ -65,12 +65,12 @@ class DocumentRenderer
      */
     private function styles(DocumentType $type, DocumentLayout $layout): string
     {
+        // Jedes Dokument hat sein eigenes Stylesheet über der gemeinsamen
+        // Grundlage — ein neues Layout kann so kein anderes Dokument verbiegen.
         $sheets = match ($type) {
-            // Die Projektliste erbt das Grundlayout, damit sie zur selben
-            // Dokumentfamilie gehört wie der Lebenslauf.
             DocumentType::Cv => ['base', $layout->value],
             DocumentType::Letter => ['base', 'letter'],
-            DocumentType::ProjectList => ['base', 'modern', 'project-list'],
+            DocumentType::ProjectList => ['base', 'project-list'],
         };
 
         return collect($sheets)

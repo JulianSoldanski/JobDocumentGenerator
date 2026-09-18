@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('generator')->name('generator.')->group(function () {
     Route::get('/', [GeneratorController::class, 'index'])->name('index');
+    Route::post('/', [GeneratorController::class, 'store'])->name('store');
     Route::get('{session}', [GeneratorController::class, 'show'])->name('show');
     Route::patch('{session}', [SessionController::class, 'update'])->name('update');
 

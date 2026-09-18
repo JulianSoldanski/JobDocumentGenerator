@@ -1,83 +1,149 @@
-/* Modern: eine Spalte, klare Abschnitte, viel Luft. */
+/*
+ * Modern: jeder Abschnitt eine weiße Karte auf hellem Grund.
+ *
+ * Die Maße stammen aus dem Lebenslauf, mit dem die bisherigen Bewerbungen
+ * verschickt wurden — deshalb in px und em statt in mm und pt wie die
+ * anderen Layouts. Ein A4-Blatt ist am Bildschirm rund 800 px breit, genau
+ * so breit wie das alte Dokument.
+ */
+
+@page {
+    margin: 10mm;
+}
+
+:root {
+    --page-width: 190mm;
+    --ink: #2c3e50;
+    --muted: #6c757d;
+    --line: #e0e0e0;
+    --accent: #4b5d67;
+}
+
+body {
+    font-family: 'Inter', 'Lato', sans-serif;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+a {
+    color: #3498db;
+}
+
+p,
+li {
+    font-size: 0.9em;
+    margin: 0.3em 0;
+}
+
+ul {
+    padding-left: 16px;
+    margin: 0.4em 0;
+}
+
+li::marker {
+    color: inherit;
+}
+
+/* Das Blatt ist hellgrau, die Karten darauf weiß. */
+@media screen {
+    .sheet {
+        background: #f8f9fa;
+        padding: 10px;
+    }
+}
+
+.card {
+    margin-bottom: 0.8em;
+    padding: 1em;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 5%);
+    /* Bricht eine lange Karte über die Seite, bekommt jedes Stück seinen Rahmen. */
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
+.card > h2 {
+    color: var(--ink);
+    font-size: 1.1em;
+    font-weight: 700;
+    margin: 0 0 0.4em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid var(--accent);
+}
 
 .header {
-    border-bottom: 2px solid var(--accent);
-    padding-bottom: 3mm;
-    margin-bottom: 6mm;
+    padding: 1.5em;
 }
 
 .header h1 {
-    font-size: 21pt;
+    color: #000;
+    font-size: 2em;
     font-weight: 700;
-    letter-spacing: -0.01em;
-    margin: 0 0 1.5mm;
+    margin: 0 0 0.8em;
+    padding-bottom: 0.5em;
+    border-bottom: 3px solid var(--accent);
 }
 
 .header .contact {
-    color: var(--muted);
+    color: #666;
+    font-size: 0.95em;
     display: flex;
     flex-wrap: wrap;
-    gap: 1mm 5mm;
-    font-size: 9pt;
+    align-items: center;
+    gap: 1.5em;
 }
 
-section {
-    margin-bottom: 5.5mm;
+.header .contact span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
 }
 
-section > h2 {
-    font-size: 10.5pt;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--accent);
-    margin: 0 0 2.5mm;
-    padding-bottom: 1mm;
-    border-bottom: 1px solid var(--line);
+.header .contact .address::before {
+    content: '📍';
+}
+
+.header .contact .phone::before {
+    content: '📞';
+}
+
+.header .contact .email::before {
+    content: '✉️';
 }
 
 .entry {
-    margin-bottom: 3.5mm;
-}
-
-.entry-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 4mm;
+    margin-bottom: 0.8em;
 }
 
 .entry-title {
-    font-weight: 700;
-}
-
-.entry-period {
-    color: var(--muted);
-    font-size: 9pt;
-    white-space: nowrap;
+    color: var(--ink);
+    font-weight: 600;
 }
 
 .entry-meta {
     color: var(--muted);
-    font-size: 9pt;
-    margin-bottom: 0.5mm;
+    font-style: italic;
+    font-size: 0.85em;
+    margin-bottom: 0.3em;
 }
 
-.skills {
-    display: grid;
-    grid-template-columns: 34mm 1fr;
-    gap: 1.5mm 4mm;
+.skills-row {
+    margin: 0.55em 0;
 }
 
-.skills dt {
-    font-weight: 700;
-    font-size: 9.5pt;
+.skills-row strong {
+    display: block;
+    color: var(--ink);
+    font-size: 0.88em;
+    margin-bottom: 0.18em;
 }
 
-.skills dd {
-    margin: 0;
-}
-
-.project-title {
-    font-weight: 700;
+.skills-row span {
+    display: block;
+    color: #495057;
+    font-size: 0.86em;
+    line-height: 1.45;
+    word-break: break-word;
 }

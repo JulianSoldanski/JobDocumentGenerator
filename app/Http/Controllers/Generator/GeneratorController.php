@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Generator;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\GeneratorSessionResource;
 use App\Models\GeneratorSession;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,6 +32,17 @@ class GeneratorController extends Controller
             ?? $user->generatorSessions()->create([]);
 
         return $this->render($session);
+    }
+
+    /**
+     * „Neue Stelle": ein leerer Arbeitsplatz. Die bisherige Sitzung bleibt, wie
+     * sie ist, samt ihrer Bewerbung.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $session = $request->user()->generatorSessions()->create([]);
+
+        return to_route('generator.show', $session);
     }
 
     public function show(Request $request, GeneratorSession $session): Response

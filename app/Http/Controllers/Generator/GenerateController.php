@@ -12,7 +12,8 @@ use Illuminate\Http\Request;
 
 /**
  * „Generieren": Lebenslauf, Anschreiben und — falls noch keine da ist — die
- * Stellen-Übersicht, je nach gewähltem Umfang.
+ * Stellen-Übersicht, je nach gewähltem Umfang. Dabei entsteht die Bewerbung,
+ * an der die Dokumente als Snapshot hängen.
  *
  * Jedes Dokument ist eine eigene Aufgabe, damit das eine schon sichtbar ist,
  * während das andere noch entsteht.
@@ -39,12 +40,25 @@ class GenerateController extends Controller
             ], 422);
         }
 
-        $session->bankResearchTime();
+        // Die Bewerbung hängt an Unternehmen und Position — ohne beide wüsste
+        // der Tracker nicht, wofür sie ist.
+        if (trim($session->company) === '' || trim($session->position) === '') {
+            return response()->json([
+                'message' => 'Trag zuerst Unternehmen und Position ein — daran hängt die Bewerbung. „Felder ausfüllen" liest beides aus der Anzeige.',
+            ], 422);
+        }
+
+        $application = $session->attachApplication();
+        $session->creditResearchTime($application);
         $session->save();
+
+        // Kam die Stelle aus der Queue, ist sie damit abgearbeitet.
+        $session->queueItem?->markDone($application);
 
         $dispatch = fn (AiTaskType $type): string => $tasks->dispatch($user, $type, [], $session)->id;
 
         return response()->json([
+            'application_id' => $application->id,
             'tasks' => [
                 'cv' => $session->scope->includesCv() ? $dispatch(AiTaskType::CvSelection) : null,
                 'letter' => $session->scope->includesLetter() ? $dispatch(AiTaskType::CoverLetter) : null,

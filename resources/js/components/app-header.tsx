@@ -48,6 +48,9 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
     const getInitials = useInitials();
     const { currentUrl, isCurrentUrl } = useCurrentUrl();
 
+    // Wie viel in der Queue noch offen ist — ohne sie öffnen zu müssen.
+    const counts: Record<string, number> = { '/queue': page.props.queueOpen };
+
     // Ein Bereich bleibt markiert, egal auf welcher seiner Unterseiten man ist.
     const isActive = (item: NavItem) =>
         item.section
@@ -134,6 +137,12 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                                 <item.icon className="mr-2 h-4 w-4" />
                                             )}
                                             {item.title}
+                                            {(counts[item.section ?? ''] ?? 0) >
+                                                0 && (
+                                                <span className="bg-muted text-muted-foreground ml-1.5 rounded-full px-1.5 text-xs tabular-nums">
+                                                    {counts[item.section ?? '']}
+                                                </span>
+                                            )}
                                         </Link>
                                         {isActive(item) && (
                                             <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>

@@ -86,6 +86,7 @@ export type GeneratorSession = {
     summary: JobSummary | null;
     title: string;
     timer_started_at: string | null;
+    application_id: number | null;
     documents: SessionDocuments;
 };
 
@@ -132,3 +133,36 @@ export type LetterContent = {
 export type SessionDocuments = Partial<
     Record<'cv' | 'letter', DocumentVersion>
 >;
+
+export type ApplicationStage =
+    | 'created'
+    | 'sent'
+    | 'interview_1'
+    | 'interview_2'
+    | 'interview_3'
+    | 'rejected';
+
+/** Eine Stufe mit ihrem Namen — die Liste kommt vom Server. */
+export type StageOption = { value: ApplicationStage; label: string };
+
+/** Eine Bewerbung im Tracker. */
+export type Application = {
+    id: number;
+    company: string;
+    position: string;
+    job_url: string | null;
+    stage: ApplicationStage;
+    stage_since: string | null;
+    /** Bei einer Absage: wie weit es ging. */
+    highest_stage: ApplicationStage | null;
+    applied_on: string | null;
+    research_seconds: number;
+    feedback: string;
+};
+
+/** Ein Stufenwechsel — nur angehängt, nie geändert. */
+export type StageEvent = {
+    id: number;
+    stage: ApplicationStage;
+    occurred_at: string;
+};
